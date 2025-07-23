@@ -3,14 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-    Volt::route('/', 'books.index')->name('home');
 
-    Route::get('dashboard', function () {
-        if (auth()->check()) {
-            return redirect()->route('books.index');
-        }
-        return view('welcome');
-    })->name('dashboard');
+    Volt::route('/books', 'books.index')->name('books.index');
+
+
+    Route::get('/', function () {
+        return redirect()->route('books.index');
+    })->name('home');
 
     Volt::route('books', 'books.index')->name('books.index');
     Volt::route('books/{book}', 'books.show')->name('books.show');
