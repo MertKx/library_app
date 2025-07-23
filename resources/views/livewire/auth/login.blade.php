@@ -108,7 +108,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                     {{ __('Forgot your password?') }}
                 </flux:link>
             @endif
-        </div>+
+        </div>
 
         <!-- Remember Me -->
         <flux:checkbox wire:model="remember" :label="__('Remember me')" />
