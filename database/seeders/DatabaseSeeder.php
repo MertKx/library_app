@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
         // 5 örnek kitap ekle
         Book::insert([
             [
-                'book_name' => 'Yüzüklerin Efendisi',
+                'book_name' => 'The Lord of the Rings',
                 'author' => 'J.R.R. Tolkien',
                 'isbn' => '9789753425987',
                 'cover_image' => 'covers/lotr.jpg',
@@ -32,15 +32,15 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'book_name' => 'Suç ve Ceza',
-                'author' => 'Fyodor Dostoyevski',
+                'book_name' => 'Crime and Punishment',
+                'author' => 'Fyodor Dostoevsky',
                 'isbn' => '9786053608070',
                 'cover_image' => 'covers/sucveceza.jpg',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'book_name' => 'Kürk Mantolu Madonna',
+                'book_name' => 'Madonna in a Fur Coat',
                 'author' => 'Sabahattin Ali',
                 'isbn' => '9789753638028',
                 'cover_image' => 'covers/kurkmantolu.jpg',
@@ -56,7 +56,7 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'book_name' => 'Sefiller',
+                'book_name' => 'Les Misérables',
                 'author' => 'Victor Hugo',
                 'isbn' => '9786053323560',
                 'cover_image' => 'covers/sefiller.jpg',
