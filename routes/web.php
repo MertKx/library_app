@@ -2,9 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
+use App\Livewire\Books\Create;
 
 
     Volt::route('/books', 'books.index')->name('books.index');
+    Route::get('/books/create', Create::class)->name('books.create');
 
 
     Route::get('/', function () {
