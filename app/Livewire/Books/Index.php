@@ -20,4 +20,10 @@ class Index extends Component
             ->get();
         return view('livewire.books.index', compact('books'));
     }
+
+    public function deleteBook($id)
+    {
+        \App\Models\Book::find($id)?->delete();
+        session()->flash('success', 'Book deleted successfully!');
+    }
 }
