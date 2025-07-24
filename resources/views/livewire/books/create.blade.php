@@ -20,9 +20,25 @@
 
         <div>
             <label for="isbn" class="block font-medium">ISBN</label>
-            <input type="text" id="isbn" wire:model.defer="isbn" class="border rounded w-full p-2 mt-1" placeholder="Enter ISBN">
+            <input type="text" id="isbn" wire:model.defer="isbn" class="border rounded w-full p-2 mt-1" placeholder="xxx-x-xxx-xxxxx-x" maxlength="17" inputmode="numeric" pattern="^\d{3}-\d-\d{3}-\d{5}-\d$" title="ISBN must be in the format xxx-x-xxx-xxxxx-x">
             @error('isbn') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
         </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const isbnInput = document.getElementById('isbn');
+            isbnInput.addEventListener('input', function(e) {
+                let value = this.value.replace(/[^\d]/g, '');
+                if (value.length > 13) value = value.slice(0, 13);
+                let formatted = '';
+                if (value.length > 0) formatted += value.slice(0, 3);
+                if (value.length > 3) formatted += '-' + value.slice(3, 4);
+                if (value.length > 4) formatted += '-' + value.slice(4, 7);
+                if (value.length > 7) formatted += '-' + value.slice(7, 12);
+                if (value.length > 12) formatted += '-' + value.slice(12, 13);
+                this.value = formatted;
+            });
+        });
+        </script>
 
         <div>
             <label for="cover_image" class="block font-medium">Book Cover Image <span class="text-gray-400 text-xs">(optional, jpg/png/jpeg)</span></label>
