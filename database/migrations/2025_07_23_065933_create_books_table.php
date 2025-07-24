@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('book_name');
             $table->string('author');
             $table->string('isbn');
-            $table->string('cover_image'); // jpg/jpeg/png kontrolü validasyonda yapılacak
+            $table->string('cover_image')->nullable(); // jpg/jpeg/png kontrolü validasyonda yapılacak
             $table->timestamps();
         });
     }
