@@ -3,9 +3,11 @@
 namespace App\Livewire\Books;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Edit extends Component
 {
+    use WithFileUploads;
     public $book;
     public $book_name;
     public $author;
@@ -23,18 +25,33 @@ class Edit extends Component
 
     public function update()
     {
-        $this->validate([
+        $rules = [
             'book_name' => 'required|string|max:255',
             'author' => 'required|string|max:255',
             'isbn' => 'required|string|max:255',
-            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
-        $this->book->update([
+        ];
+
+        // Sadece yeni dosya seçildiyse image validasyonu uygula
+        if (
+            $this->cover_image && is_object($this->cover_image)
+        ) {
+            $rules['cover_image'] = 'nullable|image|mimes:jpg,jpeg,png|max:2048';
+        }
+
+        $this->validate($rules);
+
+        $data = [
             'book_name' => $this->book_name,
             'author' => $this->author,
             'isbn' => $this->isbn,
-            // 'cover_image' => $this->cover_image,
-        ]);
+        ];
+
+        if ($this->cover_image && is_object($this->cover_image)) {
+            $data['cover_image'] = $this->cover_image->store('covers', 'public');
+        }
+
+        $this->book->update($data);
+
         session()->flash('success', 'Book updated successfully!');
         return redirect()->route('books.index');
     }
