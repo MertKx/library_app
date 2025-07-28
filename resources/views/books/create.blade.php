@@ -15,10 +15,11 @@
             @error('book_name') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
         </div>
 
-        <div>
-            <label for="author" class="block font-medium">Author</label>
-            <input type="text" id="author" name="author" value="{{ old('author') }}" class="border rounded w-full p-2 mt-1" placeholder="Enter author">
-            @error('author') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+        <div class="relative">
+            <label for="author_name" class="block font-medium">Author</label>
+            <input type="text" id="author_name" name="author_name" value="{{ old('author_name') }}" class="border rounded w-full p-2 mt-1" placeholder="Enter author name" autocomplete="off">
+            <div id="author_suggestions" class="absolute z-10 w-full bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 rounded-b shadow-lg hidden max-h-60 overflow-y-auto"></div>
+            @error('author_name') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
         </div>
 
         <div>
@@ -61,5 +62,84 @@
                 </div>
             </form>
         </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const authorInput = document.getElementById('author_name');
+            const suggestionsDiv = document.getElementById('author_suggestions');
+            let searchTimeout;
+
+            authorInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const query = this.value.trim();
+
+                if (query.length < 2) {
+                    suggestionsDiv.classList.add('hidden');
+                    return;
+                }
+
+                searchTimeout = setTimeout(() => {
+                    fetch(`/search-authors?query=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            suggestionsDiv.innerHTML = '';
+
+                            if (data.length > 0) {
+                                data.forEach(author => {
+                                    const div = document.createElement('div');
+                                    div.className = 'px-4 py-2 hover:bg-gray-100 dark:hover:bg-zinc-600 cursor-pointer border-b border-gray-200 dark:border-zinc-500 text-gray-800 dark:text-gray-200';
+                                    div.textContent = author.name;
+                                    div.onclick = function() {
+                                        authorInput.value = author.name;
+                                        suggestionsDiv.classList.add('hidden');
+                                    };
+                                    suggestionsDiv.appendChild(div);
+                                });
+
+                                // "Yeni yazar ekle" butonu
+                                const addNewDiv = document.createElement('div');
+                                addNewDiv.className = 'px-4 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-800/50 cursor-pointer border-b border-gray-200 dark:border-zinc-500 font-medium text-blue-700 dark:text-blue-300';
+                                addNewDiv.innerHTML = `"${query}" save the author and use.`;
+                                addNewDiv.onclick = function() {
+                                    authorInput.value = query;
+                                    suggestionsDiv.classList.add('hidden');
+                                };
+                                suggestionsDiv.appendChild(addNewDiv);
+
+                                suggestionsDiv.classList.remove('hidden');
+                            } else {
+                                // Hiç sonuç yoksa yeni yazar ekleme seçeneği
+                                const addNewDiv = document.createElement('div');
+                                addNewDiv.className = 'px-4 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-800/50 cursor-pointer border-b border-gray-200 dark:border-zinc-500 font-medium text-blue-700 dark:text-blue-300';
+                                addNewDiv.innerHTML = `"${query}" save the author and use.`;
+                                addNewDiv.onclick = function() {
+                                    authorInput.value = query;
+                                    suggestionsDiv.classList.add('hidden');
+                                };
+                                suggestionsDiv.appendChild(addNewDiv);
+                                suggestionsDiv.classList.remove('hidden');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                }, 300);
+            });
+
+            // Dışarı tıklandığında dropdown'ı kapat
+            document.addEventListener('click', function(e) {
+                if (!authorInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                    suggestionsDiv.classList.add('hidden');
+                }
+            });
+
+            // Enter tuşuna basıldığında dropdown'ı kapat
+            authorInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    suggestionsDiv.classList.add('hidden');
+                }
+            });
+        });
+        </script>
     </flux:main>
 </x-layouts.app.sidebar>

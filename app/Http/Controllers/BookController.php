@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Book;
+use App\Models\Author;
 
 class BookController extends Controller
 {
@@ -15,14 +16,29 @@ class BookController extends Controller
     {
         $validated = $request->validate([
             'book_name' => 'required|string|max:255',
-            'author' => 'required|string|max:255',
+            'author_name' => 'required|string|max:255',
             'isbn' => 'required|string|max:255',
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
-        if ($request->hasFile('cover_image')) {
-            $validated['cover_image'] = $request->file('cover_image')->store('covers', 'public');
+
+        // Yazarı bul veya oluştur (case insensitive)
+        $author = Author::whereRaw('LOWER(name) = ?', [strtolower($validated['author_name'])])->first();
+        
+        if (!$author) {
+            $author = Author::create(['name' => $validated['author_name']]);
         }
-        $book = Book::create($validated);
+
+        $bookData = [
+            'book_name' => $validated['book_name'],
+            'author_id' => $author->id,
+            'isbn' => $validated['isbn'],
+        ];
+
+        if ($request->hasFile('cover_image')) {
+            $bookData['cover_image'] = $request->file('cover_image')->store('covers', 'public');
+        }
+
+        $book = Book::create($bookData);
         return redirect()->route('books.show', $book)->with('success', 'Book Created Successfully!!');
     }
 
@@ -35,14 +51,29 @@ class BookController extends Controller
     {
         $validated = $request->validate([
             'book_name' => 'required|string|max:255',
-            'author' => 'required|string|max:255',
+            'author_name' => 'required|string|max:255',
             'isbn' => 'required|string|max:255',
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
-        if ($request->hasFile('cover_image')) {
-            $validated['cover_image'] = $request->file('cover_image')->store('covers', 'public');
+
+        // Yazarı bul veya oluştur (case insensitive)
+        $author = Author::whereRaw('LOWER(name) = ?', [strtolower($validated['author_name'])])->first();
+        
+        if (!$author) {
+            $author = Author::create(['name' => $validated['author_name']]);
         }
-        $book->update($validated);
+
+        $bookData = [
+            'book_name' => $validated['book_name'],
+            'author_id' => $author->id,
+            'isbn' => $validated['isbn'],
+        ];
+
+        if ($request->hasFile('cover_image')) {
+            $bookData['cover_image'] = $request->file('cover_image')->store('covers', 'public');
+        }
+
+        $book->update($bookData);
         return redirect()->route('books.show', $book)->with('success', 'Book Updated Successfully!!');
     }
 
@@ -55,11 +86,13 @@ class BookController extends Controller
     {
         $search = $request->get('search', '');
         
-        $books = Book::query()
+        $books = Book::with('author')
             ->when($search, function ($query) use ($search) {
                 $query->where('book_name', 'like', '%'.$search.'%')
-                      ->orWhere('author', 'like', '%'.$search.'%')
-                      ->orWhere('isbn', 'like', '%'.$search.'%');
+                      ->orWhere('isbn', 'like', '%'.$search.'%')
+                      ->orWhereHas('author', function ($q) use ($search) {
+                          $q->where('name', 'like', '%'.$search.'%');
+                      });
             })
             ->get();
             
@@ -70,5 +103,20 @@ class BookController extends Controller
     {
         $book->delete();
         return redirect()->route('books.index')->with('success', 'Book Deleted Successfully!!');
+    }
+
+    public function searchAuthors(Request $request)
+    {
+        $query = $request->get('query', '');
+        
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $authors = Author::whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($query) . '%'])
+            ->limit(10)
+            ->get(['id', 'name']);
+
+        return response()->json($authors);
     }
 } 

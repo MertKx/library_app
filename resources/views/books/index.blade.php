@@ -39,7 +39,7 @@
                     </div>
                     <div class="flex-1 flex flex-col gap-1">
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $book->book_name }}</h2>
-                        <p class="text-sm text-zinc-600 dark:text-zinc-300">Author: {{ $book->author }}</p>
+                        <p class="text-sm text-zinc-600 dark:text-zinc-300">Author: {{ $book->author ? $book->author->name : 'Unknown' }}</p>
                         <p class="text-xs text-zinc-400">ISBN: {{ $book->isbn }}</p>
                     </div>
                     <div class="mt-4 flex gap-2">

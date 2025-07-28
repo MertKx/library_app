@@ -13,7 +13,7 @@
         </div>
         <div class="w-full flex flex-col items-center gap-2">
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white text-center">{{ $book->book_name }}</h1>
-            <p class="text-md text-zinc-600 dark:text-zinc-300">by <span class="font-semibold">{{ $book->author }}</span></p>
+            <p class="text-md text-zinc-600 dark:text-zinc-300">by <span class="font-semibold">{{ $book->author ? $book->author->name : 'Unknown' }}</span></p>
             <p class="text-xs text-zinc-400">ISBN: {{ $book->isbn }}</p>
             <p class="text-xs text-zinc-400 mt-2">Added: {{ $book->created_at?->format('d M Y') }}</p>
         </div>

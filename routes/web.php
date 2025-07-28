@@ -21,6 +21,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/books/{book}/edit', [App\Http\Controllers\BookController::class, 'edit'])->name('books.edit');
     Route::put('/books/{book}', [App\Http\Controllers\BookController::class, 'update'])->name('books.update');
     Route::delete('/books/{book}', [App\Http\Controllers\BookController::class, 'destroy'])->name('books.destroy');
+    
+    // Yazar arama API endpoint'i
+    Route::get('/search-authors', [App\Http\Controllers\BookController::class, 'searchAuthors'])->name('authors.search');
 });
     Route::get('/books/{book}', [App\Http\Controllers\BookController::class, 'show'])->name('books.show');
 
