@@ -34,6 +34,7 @@ new class extends Component {
                 'string',
                 'lowercase',
                 'email',
+                'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
                 'max:255',
                 Rule::unique(User::class)->ignore($user->id)
             ],
@@ -77,7 +78,15 @@ new class extends Component {
             <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
 
             <div>
-                <flux:input wire:model="email" :label="__('Email')" type="email" required autocomplete="email" />
+                <flux:input 
+                    wire:model="email" 
+                    :label="__('Email')" 
+                    type="email" 
+                    required 
+                    autocomplete="email"
+                    pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                    title="Please enter a valid email address (e.g., user@gmail.com)"
+                />
 
                 @if (auth()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail &&! auth()->user()->hasVerifiedEmail())
                     <div>

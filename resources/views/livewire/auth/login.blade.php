@@ -1,5 +1,9 @@
 <?php
 
+use Egulias\EmailValidator\EmailValidator;
+use Egulias\EmailValidator\Validation\DNSCheckValidation;
+use Egulias\EmailValidator\Validation\MultipleValidationWithAnd;
+use Egulias\EmailValidator\Validation\RFCValidation;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -12,7 +16,7 @@ use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.auth')] class extends Component {
-    #[Validate('required|string|email')]
+    #[Validate('required|string')]
     public string $email = '';
 
     #[Validate('required|string')]
@@ -26,6 +30,18 @@ new #[Layout('components.layouts.auth')] class extends Component {
     public function login(): void
     {
         $this->validate();
+
+        $validator = new EmailValidator();
+        $multipleValidations = new MultipleValidationWithAnd([
+            new RFCValidation(),
+            new DNSCheckValidation()
+        ]);
+        
+        if (!$validator->isValid($this->email, $multipleValidations)) {
+            throw ValidationException::withMessages([
+                'email' => 'Invalid e-mail format. Please enter a valid e-mail address.',
+            ]);
+        }
 
         $this->ensureIsNotRateLimited();
 
@@ -89,6 +105,8 @@ new #[Layout('components.layouts.auth')] class extends Component {
             autofocus
             autocomplete="email"
             placeholder="email@example.com"
+            pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+            title="Please enter a valid email address (e.g., user@gmail.com)"
         />
 
         <!-- Password -->

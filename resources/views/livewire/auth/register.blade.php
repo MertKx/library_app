@@ -1,6 +1,10 @@
 <?php
 
 use App\Models\User;
+use Egulias\EmailValidator\EmailValidator;
+use Egulias\EmailValidator\Validation\DNSCheckValidation;
+use Egulias\EmailValidator\Validation\MultipleValidationWithAnd;
+use Egulias\EmailValidator\Validation\RFCValidation;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -21,9 +25,22 @@ new #[Layout('components.layouts.auth')] class extends Component {
     {
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'lowercase', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
         ]);
+
+        // RFC ve DNS email doğrulama
+        $validator = new EmailValidator();
+        $multipleValidations = new MultipleValidationWithAnd([
+            new RFCValidation(),
+            new DNSCheckValidation()
+        ]);
+        
+        if (!$validator->isValid($validated['email'], $multipleValidations)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'email' => 'Invalid e-mail format. Please enter a valid e-mail address.',
+            ]);
+        }
 
         $validated['password'] = Hash::make($validated['password']);
 
@@ -61,6 +78,8 @@ new #[Layout('components.layouts.auth')] class extends Component {
             required
             autocomplete="email"
             placeholder="email@example.com"
+            pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+            title="Please enter a valid email address (e.g., user@gmail.com)"
         />
 
         <!-- Password -->
