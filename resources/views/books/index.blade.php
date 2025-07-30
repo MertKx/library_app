@@ -1,4 +1,4 @@
-<x-layouts.app.sidebar title="MY BOOKS">
+<x-layouts.app.sidebar title="Library">
     <flux:main>
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
             <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Library</h1>
@@ -41,6 +41,16 @@
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $book->book_name }}</h2>
                         <p class="text-sm text-zinc-600 dark:text-zinc-300">Author: {{ $book->author ? $book->author->name : 'Unknown' }}</p>
                         <p class="text-xs text-zinc-400">ISBN: {{ $book->isbn }}</p>
+                        @if($book->stores->count() > 0)
+                            <div class="mt-2">
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Available in:</p>
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach($book->stores as $store)
+                                        <span class="inline-block bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">{{ $store->name }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     </div>
                     <div class="mt-4 flex gap-2">
                         <a href="{{ route('books.show', $book) }}" class="flex-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-3 py-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-center transition">Details</a>

@@ -15,6 +15,16 @@
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white text-center">{{ $book->book_name }}</h1>
             <p class="text-md text-zinc-600 dark:text-zinc-300">by <span class="font-semibold">{{ $book->author ? $book->author->name : 'Unknown' }}</span></p>
             <p class="text-xs text-zinc-400">ISBN: {{ $book->isbn }}</p>
+            @if($book->stores->count() > 0)
+                <div class="mt-2 text-center">
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-2">Available in:</p>
+                    <div class="flex flex-wrap gap-1 justify-center">
+                        @foreach($book->stores as $store)
+                            <span class="inline-block bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">{{ $store->name }}</span>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
             <p class="text-xs text-zinc-400 mt-2">Added: {{ $book->created_at?->format('d M Y') }}</p>
         </div>
                 <div class="flex gap-2 w-full">
