@@ -1,0 +1,94 @@
+<?php
+
+namespace App\Import;
+
+use App\Models\Book;
+use App\Models\Author;
+use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Illuminate\Support\Facades\Log;
+
+class BookImport implements ToCollection, WithHeadingRow
+{
+    public function collection(Collection $rows)
+    {
+        $chunkSize = 100;
+        $dataChunk = [];
+        $processedCount = 0;
+        $errorCount = 0;
+
+        // Get or create a default author
+        $defaultAuthor = Author::firstOrCreate(['name' => 'Unknown Author']);
+
+        foreach ($rows as $index => $row) {
+            try {
+                // Normalize column names and handle missing columns
+                $bookName = $row['book_name'] ?? $row['book_name'] ?? '';
+                $authorId = isset($row['author_id']) ? (int) $row['author_id'] : null;
+                $isbn = $row['isbn'] ?? '';
+                $coverImage = $row['cover_image'] ?? '';
+
+                // Check required fields
+                if (empty($bookName)) {
+                    Log::warning("Row {$index}: Book name is empty, skipping");
+                    $errorCount++;
+                    continue;
+                }
+
+                // If isbn is empty, generate a fake one to ensure upsert works
+                if (empty($isbn)) {
+                    $isbn = 'TEMP-' . uniqid();
+                }
+
+                // Handle author_id - if it doesn't exist or invalid, use default author
+                if (empty($authorId) || $authorId <= 0 || !Author::find($authorId)) {
+                    Log::warning("Row {$index}: Author ID {$authorId} not found or invalid, using default author");
+                    $authorId = $defaultAuthor->id;
+                }
+
+                $dataChunk[] = [
+                    'book_name'   => $bookName,
+                    'author_id'   => $authorId,
+                    'isbn'        => $isbn,
+                    'cover_image' => $coverImage,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ];
+
+                $processedCount++;
+
+                if (count($dataChunk) === $chunkSize) {
+                    $this->insertChunk($dataChunk);
+                    $dataChunk = [];
+                }
+
+            } catch (\Exception $e) {
+                Log::error("Row {$index} processing error: " . $e->getMessage());
+                $errorCount++;
+            }
+        }
+
+        // Insert remaining data
+        if (!empty($dataChunk)) {
+            $this->insertChunk($dataChunk);
+        }
+
+        Log::info("Import completed. Processed: {$processedCount}, Errors: {$errorCount}");
+    }
+
+    private function insertChunk(array $dataChunk)
+    {
+        try {
+            Book::query()->upsert(
+                $dataChunk,
+                ['isbn'], // Unique key
+                ['book_name', 'author_id', 'cover_image', 'updated_at']
+            );
+            Log::info("Inserted chunk of size: " . count($dataChunk));
+        } catch (\Exception $e) {
+            Log::error("Chunk insert error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+}
