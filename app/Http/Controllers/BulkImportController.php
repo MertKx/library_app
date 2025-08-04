@@ -21,7 +21,7 @@ class BulkImportController extends Controller
                 'file' => 'required|mimetypes:text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|max:10240'
             ]);
 
-            // Her zaman public diske kaydet
+            // Always save to public disk
             $path = $request->file('file')->storePublicly('imports', 'public');
             Log::info('Uploaded file path: ' . $path);
             Log::info('Full file path: ' . storage_path('app/public/' . $path));
