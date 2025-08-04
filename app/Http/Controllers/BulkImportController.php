@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Jobs\ProcessBooksImport;
+use App\Models\BulkImportHistory;
 use Illuminate\Support\Facades\Log;
 
 class BulkImportController extends Controller
@@ -25,16 +26,22 @@ class BulkImportController extends Controller
             Log::info('Uploaded file path: ' . $path);
             Log::info('Full file path: ' . storage_path('app/public/' . $path));
 
-            ProcessBooksImport::dispatch($path);
+            // Create history record
+            $history = BulkImportHistory::create([
+                'file_name' => $request->file('file')->getClientOriginalName(),
+                'status' => BulkImportHistory::STATUS_PENDING,
+            ]);
 
-            Log::info("Import job queued for file: {$path}");
+            // Dispatch job with history ID
+            ProcessBooksImport::dispatch($path, $history->id);
 
-            return back()->with('status', 'File uploaded successfully! Process has been added to queue. You can monitor the process status from logs.');
+            Log::info("Import job queued for file: {$path} with history ID: {$history->id}");
+
+            return back()->with('status', 'File uploaded successfully! Process has been added to queue. You can monitor the process status from the import history page.');
 
         } catch (\Exception $e) {
             Log::error("Import upload error: " . $e->getMessage());
             return back()->withErrors(['error' => 'File upload error: ' . $e->getMessage()]);
         }
     }
-
 }

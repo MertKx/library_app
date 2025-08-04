@@ -4,6 +4,7 @@ namespace App\Import;
 
 use App\Models\Book;
 use App\Models\Author;
+use App\Models\BulkImportHistory;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -11,12 +12,21 @@ use Illuminate\Support\Facades\Log;
 
 class BookImport implements ToCollection, WithHeadingRow
 {
+    protected $history;
+    protected $processedCount = 0;
+    protected $errorCount = 0;
+
+    public function __construct(BulkImportHistory $history = null)
+    {
+        $this->history = $history;
+    }
+
     public function collection(Collection $rows)
     {
         $chunkSize = 100;
         $dataChunk = [];
-        $processedCount = 0;
-        $errorCount = 0;
+        $this->processedCount = 0;
+        $this->errorCount = 0;
 
         // Get or create a default author
         $defaultAuthor = Author::firstOrCreate(['name' => 'Unknown Author']);
@@ -32,7 +42,7 @@ class BookImport implements ToCollection, WithHeadingRow
                 // Check required fields
                 if (empty($bookName)) {
                     Log::warning("Row {$index}: Book name is empty, skipping");
-                    $errorCount++;
+                    $this->errorCount++;
                     continue;
                 }
 
@@ -56,16 +66,19 @@ class BookImport implements ToCollection, WithHeadingRow
                     'updated_at'  => now(),
                 ];
 
-                $processedCount++;
+                $this->processedCount++;
 
                 if (count($dataChunk) === $chunkSize) {
                     $this->insertChunk($dataChunk);
                     $dataChunk = [];
+                    
+                    // Update progress in history
+                    $this->updateProgress();
                 }
 
             } catch (\Exception $e) {
                 Log::error("Row {$index} processing error: " . $e->getMessage());
-                $errorCount++;
+                $this->errorCount++;
             }
         }
 
@@ -74,7 +87,10 @@ class BookImport implements ToCollection, WithHeadingRow
             $this->insertChunk($dataChunk);
         }
 
-        Log::info("Import completed. Processed: {$processedCount}, Errors: {$errorCount}");
+        // Final progress update
+        $this->updateProgress();
+
+        Log::info("Import completed. Processed: {$this->processedCount}, Errors: {$this->errorCount}");
     }
 
     private function insertChunk(array $dataChunk)
@@ -90,5 +106,24 @@ class BookImport implements ToCollection, WithHeadingRow
             Log::error("Chunk insert error: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    private function updateProgress()
+    {
+        if ($this->history) {
+            $this->history->update([
+                'processed_records' => $this->processedCount
+            ]);
+        }
+    }
+
+    public function getProcessedCount()
+    {
+        return $this->processedCount;
+    }
+
+    public function getErrorCount()
+    {
+        return $this->errorCount;
     }
 }
