@@ -20,7 +20,7 @@ class BulkImportController extends Controller
                 'file' => 'required|mimetypes:text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|max:10240'
             ]);
 
-            // Her zaman public diske kaydet
+            // Always save to public disk
             $path = $request->file('file')->storePublicly('imports', 'public');
             Log::info('Uploaded file path: ' . $path);
             Log::info('Full file path: ' . storage_path('app/public/' . $path));
@@ -37,4 +37,32 @@ class BulkImportController extends Controller
         }
     }
 
+    /**
+     * Test import functionality
+     */
+    public function testImport()
+    {
+        try {
+            $filePath = base_path('test_books.csv');
+            
+            if (!file_exists($filePath)) {
+                return response()->json(['error' => 'Test file not found'], 404);
+            }
+
+            // Test the import
+            $import = new \App\Import\BookImport();
+            \Maatwebsite\Excel\Facades\Excel::import($import, $filePath);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Test import completed successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

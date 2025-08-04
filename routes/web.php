@@ -30,6 +30,9 @@ use Livewire\Volt\Volt;
 
     // Search author endpoint
     Route::get('/search-authors', [App\Http\Controllers\BookController::class, 'searchAuthors'])->name('authors.search');
+
+    // Test import
+    Route::get('/test-import', [BulkImportController::class, 'testImport'])->name('test-import');
 });
     Route::get('/books/{book}', [App\Http\Controllers\BookController::class, 'show'])->name('books.show');
 

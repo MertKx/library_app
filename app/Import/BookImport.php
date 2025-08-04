@@ -18,30 +18,50 @@ class BookImport implements ToCollection, WithHeadingRow
         $processedCount = 0;
         $errorCount = 0;
 
-        // Get or create a default author
         $defaultAuthor = Author::firstOrCreate(['name' => 'Unknown Author']);
 
+        $isbnList = [];
+
+        // 1. Check for duplicate ISBNs within CSV file
+        foreach ($rows as $index => $row) {
+            $isbn = trim($row['isbn'] ?? '');
+
+            if (empty($isbn)) {
+                $isbn = 'TEMP-' . uniqid();
+            }
+
+            if (in_array($isbn, $isbnList)) {
+                throw new \Exception("Duplicate ISBN found in CSV: $isbn");
+            }
+
+            $isbnList[] = $isbn;
+        }
+
+        // 2. Check if ISBNs already exist in database
+        $exists = Book::whereIn('isbn', $isbnList)->exists();
+        if ($exists) {
+            throw new \Exception("ISBNs already exist in database, import cancelled.");
+        }
+
+        // 3. Insert data in chunks
         foreach ($rows as $index => $row) {
             try {
-                // Normalize column names and handle missing columns
-                $bookName = $row['book_name'] ?? $row['book_name'] ?? '';
+                $bookName = $row['book_name'] ?? '';
                 $authorId = isset($row['author_id']) ? (int) $row['author_id'] : null;
-                $isbn = $row['isbn'] ?? '';
+                $isbn = trim($row['isbn'] ?? '');
+
+                if (empty($isbn)) {
+                    $isbn = 'TEMP-' . uniqid();
+                }
+
                 $coverImage = $row['cover_image'] ?? '';
 
-                // Check required fields
                 if (empty($bookName)) {
                     Log::warning("Row {$index}: Book name is empty, skipping");
                     $errorCount++;
                     continue;
                 }
 
-                // If isbn is empty, generate a fake one to ensure upsert works
-                if (empty($isbn)) {
-                    $isbn = 'TEMP-' . uniqid();
-                }
-
-                // Handle author_id - if it doesn't exist or invalid, use default author
                 if (empty($authorId) || $authorId <= 0 || !Author::find($authorId)) {
                     Log::warning("Row {$index}: Author ID {$authorId} not found or invalid, using default author");
                     $authorId = $defaultAuthor->id;
@@ -69,7 +89,6 @@ class BookImport implements ToCollection, WithHeadingRow
             }
         }
 
-        // Insert remaining data
         if (!empty($dataChunk)) {
             $this->insertChunk($dataChunk);
         }
