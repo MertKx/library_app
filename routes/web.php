@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BulkImportController;
+use App\Http\Controllers\BulkImportHistoryController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -28,7 +29,16 @@ use Livewire\Volt\Volt;
     Route::get('/bulk-import', [BulkImportController::class, 'index'])->name('bulk-import.index');
     Route::post('/bulk-import', [BulkImportController::class, 'upload'])->name('bulk-import.upload');
 
-    // Search author endpoint
+    //Bulk Import History
+    Route::get('/bulk-import-history', [BulkImportHistoryController::class, 'index'])
+        ->name('bulk-import-history.index');
+    Route::get('/bulk-import-history/{history}', [BulkImportHistoryController::class, 'show'])
+        ->name('bulk-import-history.show');
+    Route::post('/bulk-import-history/{history}/retry', [BulkImportHistoryController::class, 'retry'])
+        ->name('bulk-import-history.retry');
+
+
+        // Search author endpoint
     Route::get('/search-authors', [App\Http\Controllers\BookController::class, 'searchAuthors'])->name('authors.search');
 
     // Test import
