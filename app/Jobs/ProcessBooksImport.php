@@ -105,7 +105,14 @@ class ProcessBooksImport implements ShouldQueue
     private function getOrCreateHistory()
     {
         if ($this->historyId) {
-            return BulkImportHistory::findOrFail($this->historyId);
+            $history = BulkImportHistory::findOrFail($this->historyId);
+            
+            // Double check that this history record is in a state that can be processed
+            if (!in_array($history->status, [BulkImportHistory::STATUS_PENDING, BulkImportHistory::STATUS_PROCESSING])) {
+                throw new \Exception("History record {$this->historyId} is not in a processable state. Current status: {$history->status}");
+            }
+            
+            return $history;
         }
 
         // Extract filename from path
