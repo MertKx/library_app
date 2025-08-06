@@ -15,6 +15,9 @@ class BookImport implements ToCollection, WithHeadingRow
     protected $history;
     protected $processedCount = 0;
     protected $errorCount = 0;
+    protected $skippedCount = 0;
+    protected $duplicateCount = 0;
+    protected $errors = [];
 
     public function __construct(BulkImportHistory $history = null)
     {
@@ -27,51 +30,79 @@ class BookImport implements ToCollection, WithHeadingRow
         $dataChunk = [];
         $this->processedCount = 0;
         $this->errorCount = 0;
+        $this->skippedCount = 0;
+        $this->duplicateCount = 0;
+        $this->errors = [];
 
         $defaultAuthor = Author::firstOrCreate(['name' => 'Unknown Author']);
 
-        $isbnList = [];
+        $csvIsbnList = [];
+        $validRows = [];
 
-        // 1. Check for duplicate ISBNs within CSV file
-        foreach ($rows as $index => $row) {
-            $isbn = trim($row['isbn'] ?? '');
-
-            if (empty($isbn)) {
-                $isbn = 'TEMP-' . uniqid();
-            }
-
-            if (in_array($isbn, $isbnList)) {
-                throw new \Exception("Duplicate ISBN found in CSV: $isbn");
-            }
-
-            $isbnList[] = $isbn;
-        }
-
-        // 2. Check if ISBNs already exist in database
-        $exists = Book::whereIn('isbn', $isbnList)->exists();
-        if ($exists) {
-            throw new \Exception("ISBNs already exist in database, import cancelled.");
-        }
-
-        // 3. Insert data in chunks
+        // 1. First pass: Validate rows and check for duplicate ISBNs within CSV
         foreach ($rows as $index => $row) {
             try {
-                $bookName = $row['book_name'] ?? '';
-                $authorId = isset($row['author_id']) ? (int) $row['author_id'] : null;
                 $isbn = trim($row['isbn'] ?? '');
+                $bookName = trim($row['book_name'] ?? '');
 
+                // Skip rows with empty book name
+                if (empty($bookName)) {
+                    $this->logError($index + 2, "Book name is empty, skipping row");
+                    $this->skippedCount++;
+                    continue;
+                }
+
+                // Generate unique ISBN if empty
                 if (empty($isbn)) {
                     $isbn = 'TEMP-' . uniqid();
                 }
 
-                $coverImage = $row['cover_image'] ?? '';
-
-                if (empty($bookName)) {
-                    Log::warning("Row {$index}: Book name is empty, skipping");
-                    $this->errorCount++;
+                // Check for duplicate ISBNs within CSV file
+                if (in_array($isbn, $csvIsbnList)) {
+                    $this->logError($index + 2, "Duplicate ISBN found in CSV: $isbn, skipping row");
+                    $this->duplicateCount++;
                     continue;
                 }
 
+                $csvIsbnList[] = $isbn;
+                $validRows[] = [
+                    'index' => $index + 2, // +2 because index starts at 0 and we have header row
+                    'data' => $row,
+                    'isbn' => $isbn,
+                    'book_name' => $bookName
+                ];
+
+            } catch (\Exception $e) {
+                $this->logError($index + 2, "Row validation error: " . $e->getMessage());
+                $this->errorCount++;
+            }
+        }
+
+        // 2. Check which ISBNs already exist in database
+        $existingIsbns = [];
+        if (!empty($csvIsbnList)) {
+            $existingIsbns = Book::whereIn('isbn', $csvIsbnList)->pluck('isbn')->toArray();
+        }
+
+        // 3. Process valid rows
+        foreach ($validRows as $rowData) {
+            try {
+                $row = $rowData['data'];
+                $isbn = $rowData['isbn'];
+                $bookName = $rowData['book_name'];
+                $index = $rowData['index'];
+
+                // Skip if ISBN already exists in database
+                if (in_array($isbn, $existingIsbns)) {
+                    $this->logError($index, "ISBN already exists in database: $isbn, skipping row");
+                    $this->duplicateCount++;
+                    continue;
+                }
+
+                $authorId = isset($row['author_id']) ? (int) $row['author_id'] : null;
+                $coverImage = $row['cover_image'] ?? '';
+
+                // Validate and handle author ID
                 if (empty($authorId) || $authorId <= 0 || !Author::find($authorId)) {
                     Log::warning("Row {$index}: Author ID {$authorId} not found or invalid, using default author");
                     $authorId = $defaultAuthor->id;
@@ -97,11 +128,12 @@ class BookImport implements ToCollection, WithHeadingRow
                 }
 
             } catch (\Exception $e) {
-                Log::error("Row {$index} processing error: " . $e->getMessage());
+                $this->logError($rowData['index'], "Row processing error: " . $e->getMessage());
                 $this->errorCount++;
             }
         }
 
+        // Insert remaining data
         if (!empty($dataChunk)) {
             $this->insertChunk($dataChunk);
         }
@@ -109,31 +141,61 @@ class BookImport implements ToCollection, WithHeadingRow
         // Final progress update
         $this->updateProgress();
 
-        Log::info("Import completed. Processed: {$this->processedCount}, Errors: {$this->errorCount}");
+        Log::info("Import completed. Processed: {$this->processedCount}, Errors: {$this->errorCount}, Skipped: {$this->skippedCount}, Duplicates: {$this->duplicateCount}");
+        
+        // Log summary of errors if any
+        if (!empty($this->errors)) {
+            Log::info("Import errors summary:", $this->errors);
+        }
     }
 
     private function insertChunk(array $dataChunk)
     {
         try {
-            Book::query()->upsert(
-                $dataChunk,
-                ['isbn'], // Unique key
-                ['book_name', 'author_id', 'cover_image', 'updated_at']
-            );
+            // Use insert instead of upsert to avoid updating existing records
+            Book::insert($dataChunk);
             Log::info("Inserted chunk of size: " . count($dataChunk));
         } catch (\Exception $e) {
             Log::error("Chunk insert error: " . $e->getMessage());
-            throw $e;
+            
+            // Try to insert records one by one to identify specific failures
+            foreach ($dataChunk as $record) {
+                try {
+                    Book::insert([$record]);
+                } catch (\Exception $singleError) {
+                    $this->logError('chunk', "Failed to insert record with ISBN {$record['isbn']}: " . $singleError->getMessage());
+                    $this->errorCount++;
+                    $this->processedCount--; // Reduce processed count since this record failed
+                }
+            }
         }
     }
 
     private function updateProgress()
     {
         if ($this->history) {
+            $errorMessage = null;
+            if (!empty($this->errors)) {
+                $errorMessage = "Errors: " . $this->errorCount . ", Skipped: " . $this->skippedCount . ", Duplicates: " . $this->duplicateCount;
+                if (count($this->errors) <= 10) {
+                    $errorMessage .= "\nDetails: " . implode("; ", array_slice($this->errors, 0, 10));
+                } else {
+                    $errorMessage .= "\nShowing first 10 errors: " . implode("; ", array_slice($this->errors, 0, 10));
+                }
+            }
+
             $this->history->update([
-                'processed_records' => $this->processedCount
+                'processed_records' => $this->processedCount,
+                'error_message' => $errorMessage
             ]);
         }
+    }
+
+    private function logError($rowNumber, $message)
+    {
+        $errorMsg = "Row {$rowNumber}: {$message}";
+        Log::warning($errorMsg);
+        $this->errors[] = $errorMsg;
     }
 
     public function getProcessedCount()
@@ -144,5 +206,20 @@ class BookImport implements ToCollection, WithHeadingRow
     public function getErrorCount()
     {
         return $this->errorCount;
+    }
+
+    public function getSkippedCount()
+    {
+        return $this->skippedCount;
+    }
+
+    public function getDuplicateCount()
+    {
+        return $this->duplicateCount;
+    }
+
+    public function getErrors()
+    {
+        return $this->errors;
     }
 }
