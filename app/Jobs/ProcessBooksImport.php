@@ -73,13 +73,51 @@ class ProcessBooksImport implements ShouldQueue
             $import = new BookImport($history);
             Excel::import($import, $filePath);
 
+            // Determine final status based on results
+            $processedCount = $import->getProcessedCount();
+            $errorCount = $import->getErrorCount();
+            $skippedCount = $import->getSkippedCount();
+            $duplicateCount = $import->getDuplicateCount();
+            
+            $finalStatus = BulkImportHistory::STATUS_COMPLETED;
+            
+            // If no records were processed successfully, mark as failed
+            if ($processedCount === 0) {
+                $finalStatus = BulkImportHistory::STATUS_FAILED;
+            }
+
+            // Prepare comprehensive status message
+            $statusMessage = "Import completed. ";
+            $statusMessage .= "Processed: {$processedCount}";
+            
+            if ($errorCount > 0) {
+                $statusMessage .= ", Errors: {$errorCount}";
+            }
+            if ($skippedCount > 0) {
+                $statusMessage .= ", Skipped: {$skippedCount}";
+            }
+            if ($duplicateCount > 0) {
+                $statusMessage .= ", Duplicates: {$duplicateCount}";
+            }
+
+            // Get existing error message and append summary if needed
+            $existingErrorMessage = $history->error_message;
+            if ($errorCount > 0 || $skippedCount > 0 || $duplicateCount > 0) {
+                if (empty($existingErrorMessage)) {
+                    $existingErrorMessage = $statusMessage;
+                } else {
+                    $existingErrorMessage = $statusMessage . "\n" . $existingErrorMessage;
+                }
+            }
+
             // Update final status
             $history->update([
-                'status' => BulkImportHistory::STATUS_COMPLETED,
-                'processed_records' => $import->getProcessedCount()
+                'status' => $finalStatus,
+                'processed_records' => $processedCount,
+                'error_message' => $existingErrorMessage
             ]);
 
-            Log::info("Import process completed successfully for file: {$filePath}");
+            Log::info("Import process completed for file: {$filePath}. " . $statusMessage);
 
             // Optional: Delete file after processing
             // unlink($filePath);
