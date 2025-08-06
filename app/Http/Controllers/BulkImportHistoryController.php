@@ -66,8 +66,8 @@ class BulkImportHistoryController extends Controller
             'error_message' => null,
         ]);
 
-        // Dispatch the job again
-        \App\Jobs\ProcessBooksImport::dispatch($history->file_name);
+        // Dispatch the job again with the stored file path and history ID
+        \App\Jobs\ProcessBooksImport::dispatch($history->file_path, $history->id);
 
         return back()->with('status', 'Import has been queued for retry.');
     }

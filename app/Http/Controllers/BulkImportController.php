@@ -29,6 +29,7 @@ class BulkImportController extends Controller
             // Create history record
             $history = BulkImportHistory::create([
                 'file_name' => $request->file('file')->getClientOriginalName(),
+                'file_path' => $path,
                 'status' => BulkImportHistory::STATUS_PENDING,
             ]);
 

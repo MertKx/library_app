@@ -11,6 +11,7 @@ class BulkImportHistory extends Model
 
     protected $fillable = [
         'file_name',
+        'file_path',
         'status',
         'total_records',
         'processed_records',
