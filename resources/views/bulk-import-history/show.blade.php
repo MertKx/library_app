@@ -20,13 +20,15 @@
                             {{ $history->status }}
                         </span>
                     </div>
-                    @if($history->status === 'Failed')
+                    @if($history->status === 'Failed' && $history->file_path)
                         <form method="POST" action="{{ route('bulk-import-history.retry', $history) }}">
                             @csrf
                             <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition">
                                 Retry Import
                             </button>
                         </form>
+                    @elseif($history->status === 'Failed' && !$history->file_path)
+                        <p class="text-red-600 text-sm">This import cannot be retried because the original file path is not available.</p>
                     @endif
                 </div>
             </div>
@@ -102,13 +104,15 @@
                     <a href="{{ route('bulk-import-history.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg shadow transition">
                         Back to History
                     </a>
-                    @if($history->status === 'Failed')
+                    @if($history->status === 'Failed' && $history->file_path)
                         <form method="POST" action="{{ route('bulk-import-history.retry', $history) }}" class="inline">
                             @csrf
                             <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition">
                                 Retry Import
                             </button>
                         </form>
+                    @elseif($history->status === 'Failed' && !$history->file_path)
+                        <span class="text-red-600 text-sm">Retry not available - file path missing</span>
                     @endif
                 </div>
             </div>

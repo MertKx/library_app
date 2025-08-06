@@ -80,7 +80,7 @@
                                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
                                                 View
                                             </a>
-                                            @if($history->status === 'Failed')
+                                            @if($history->status === 'Failed' && $history->file_path)
                                                 <form method="POST" action="{{ route('bulk-import-history.retry', $history) }}" class="inline">
                                                     @csrf
                                                     <button type="submit" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">

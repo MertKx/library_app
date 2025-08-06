@@ -59,8 +59,13 @@ class BulkImportHistoryController extends Controller
             return back()->withErrors(['error' => 'Only failed imports can be retried.']);
         }
 
+        // Check if file_path exists for this history record
+        if (!$history->file_path) {
+            return back()->withErrors(['error' => 'File path not found for this import record. This import cannot be retried.']);
+        }
+
         // Check if there's already a pending or processing record for this file
-        $activeImport = BulkImportHistory::where('file_name', $history->file_name)
+        $activeImport = BulkImportHistory::where('file_path', $history->file_path)
             ->whereIn('status', [BulkImportHistory::STATUS_PENDING, BulkImportHistory::STATUS_PROCESSING])
             ->where('id', '!=', $history->id)
             ->first();
@@ -76,8 +81,8 @@ class BulkImportHistoryController extends Controller
             'error_message' => null,
         ]);
 
-        // Dispatch the job again with the history ID
-        \App\Jobs\ProcessBooksImport::dispatch($history->file_name, $history->id);
+        // Dispatch the job again with the history ID and proper file path
+        \App\Jobs\ProcessBooksImport::dispatch($history->file_path, $history->id);
 
         return back()->with('status', 'Import has been queued for retry.');
     }

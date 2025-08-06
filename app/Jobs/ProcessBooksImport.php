@@ -120,6 +120,7 @@ class ProcessBooksImport implements ShouldQueue
         
         return BulkImportHistory::create([
             'file_name' => $fileName,
+            'file_path' => $this->path,
             'status' => BulkImportHistory::STATUS_PENDING,
         ]);
     }
