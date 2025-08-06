@@ -6,7 +6,15 @@
 
                 @if (session('status'))
                     <div class="mb-4 p-3 bg-green-100 text-green-800 rounded">
-                        {{ session('status') }}
+                        {!! session('status') !!}
+                    </div>
+                @endif
+
+                @if ($errors->any())
+                    <div class="mb-4 p-3 bg-red-100 text-red-800 rounded">
+                        @foreach ($errors->all() as $error)
+                            {!! $error !!}
+                        @endforeach
                     </div>
                 @endif
 
@@ -42,6 +50,27 @@
                     fileName.textContent = '';
                 }
             });
+
+            // Check for import errors from jobs
+            @if(session('history_id'))
+                const historyId = '{{ session('history_id') }}';
+                const checkForErrors = () => {
+                    fetch(`{{ route('bulk-import.index') }}?history_id=${historyId}`)
+                        .then(response => response.text())
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            const errorDiv = doc.querySelector('.bg-red-100');
+                            
+                            if (errorDiv) {
+                                location.reload();
+                            }
+                        });
+                };
+                
+                // Check for errors every 5 seconds
+                setInterval(checkForErrors, 5000);
+            @endif
         </script>
     </flux:main>
 </x-layouts.app.sidebar>

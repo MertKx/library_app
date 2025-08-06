@@ -58,28 +58,63 @@
             @error('stores') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
         </div>
 
-        <div>
-            <label for="cover_image" class="block font-medium">Book Cover Image <span class="text-gray-400 text-xs">(optional, jpg/png/jpeg)</span></label>
-            <div class="flex items-center gap-2 mt-1">
-                <span class="text-xs text-gray-500 flex-1" id="cover_image_label">
-                    @if ($book->cover_image)
-                        {{ basename($book->cover_image) }}
-                    @else
-                        No file chosen
-                    @endif
-                </span>
-                <label class="inline-block cursor-pointer border-2 border-indigo-600 rounded px-3 py-1 bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition">
-                    Choose file
-                    <input type="file" id="cover_image" name="cover_image" accept=".jpg,.jpeg,.png" class="hidden" aria-label="Choose file" onchange="document.getElementById('cover_image_label').textContent = this.files[0] ? this.files[0].name : '{{ $book->cover_image ? basename($book->cover_image) : 'No file chosen' }}';">
-                </label>
-            </div>
-            @error('cover_image') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+                <div>
+                    <label for="cover_image" class="block font-medium">Book Cover Image <span class="text-gray-400 text-xs">(optional, jpg/png/jpeg)</span></label>
+                    <div class="flex items-center gap-2 mt-1">
+        <span class="text-xs text-gray-500 flex-1" id="cover_image_label">
             @if ($book->cover_image)
-                <div class="mt-2">
-                    <img src="{{ asset('storage/' . $book->cover_image) }}" alt="Current Cover" class="h-32 rounded shadow border object-contain">
-                </div>
+                {{ basename($book->cover_image) }}
+            @else
+                No file chosen
             @endif
-        </div>
+        </span>
+                        <label class="inline-block cursor-pointer border-2 border-indigo-600 rounded px-3 py-1 bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition">
+                            Choose file
+                            <input type="file" id="cover_image" name="cover_image" accept=".jpg,.jpeg,.png" class="hidden" aria-label="Choose file" onchange="document.getElementById('cover_image_label').textContent = this.files[0] ? this.files[0].name : '{{ $book->cover_image ? basename($book->cover_image) : 'No file chosen' }}';">
+                        </label>
+
+                        @if ($book->cover_image)
+                            <button type="button" id="remove_cover_btn" class="ml-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition">
+                                Remove
+                            </button>
+                        @endif
+                    </div>
+
+                    @error('cover_image') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+
+                    @if ($book->cover_image)
+                        <div class="mt-2">
+                            <img src="{{ asset('storage/' . $book->cover_image) }}" alt="Current Cover" class="h-32 rounded shadow border object-contain">
+                        </div>
+                    @endif
+
+                    <!-- Hidden input to signal removal -->
+                    <input type="hidden" name="remove_cover" id="remove_cover" value="0" />
+                </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const removeBtn = document.getElementById('remove_cover_btn');
+                        const removeInput = document.getElementById('remove_cover');
+                        const coverLabel = document.getElementById('cover_image_label');
+                        const fileInput = document.getElementById('cover_image');
+
+                        if (removeBtn) {
+                            removeBtn.addEventListener('click', function() {
+                                // Set hidden input to 1 to signal removal
+                                removeInput.value = '1';
+
+                                // Clear file input and label
+                                coverLabel.textContent = 'No file chosen';
+                                fileInput.value = '';
+
+                                // Hide remove button since no cover now
+                                removeBtn.style.display = 'none';
+                            });
+                        }
+                    });
+                </script>
+
 
                 <div class="pt-4">
                     <button type="submit"

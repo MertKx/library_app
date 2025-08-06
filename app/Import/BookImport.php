@@ -30,69 +30,49 @@ class BookImport implements ToCollection, WithHeadingRow
 
         $defaultAuthor = Author::firstOrCreate(['name' => 'Unknown Author']);
 
-        $isbnList = [];
+        // Pre-load all authors to avoid N+1 queries
+        $authorIds = $rows->pluck('author_id')->filter()->unique()->toArray();
+        $authors = Author::whereIn('id', $authorIds)->pluck('id')->toArray();
+        
+        // Check if ISBNs already exist in database
+        $isbnList = $rows->pluck('isbn')->map(function($isbn) {
+            return empty(trim($isbn)) ? 'TEMP-' . uniqid() : trim($isbn);
+        })->filter()->unique()->toArray();
 
-        // 1. Check for duplicate ISBNs within CSV file
-        foreach ($rows as $index => $row) {
-            $isbn = trim($row['isbn'] ?? '');
-
-            if (empty($isbn)) {
-                $isbn = 'TEMP-' . uniqid();
-            }
-
-            if (in_array($isbn, $isbnList)) {
-                throw new \Exception("Duplicate ISBN found in CSV: $isbn");
-            }
-
-            $isbnList[] = $isbn;
+        // Check for duplicates in CSV first
+        $csvIsbnCount = count($isbnList);
+        $uniqueIsbnCount = count(array_unique($isbnList));
+        if ($csvIsbnCount !== $uniqueIsbnCount) {
+            $duplicates = array_diff_assoc($isbnList, array_unique($isbnList));
+            $duplicateList = implode(', ', array_unique($duplicates));
+            throw new \Exception("Duplicate ISBNs found in CSV file: {$duplicateList}");
         }
 
-        // 2. Check if ISBNs already exist in database
-        $exists = Book::whereIn('isbn', $isbnList)->exists();
-        if ($exists) {
-            throw new \Exception("ISBNs already exist in database, import cancelled.");
+        // Check if ISBNs already exist in database (only if we have ISBNs to check)
+        if (!empty($isbnList)) {
+            $existingIsbns = Book::whereIn('isbn', $isbnList)->pluck('isbn')->toArray();
+            if (!empty($existingIsbns)) {
+                $existingList = implode(', ', $existingIsbns);
+                throw new \Exception("ISBNs already exist in database: {$existingList}");
+            }
         }
 
-        // 3. Insert data in chunks
+        // Process data in chunks
         foreach ($rows as $index => $row) {
             try {
-                $bookName = $row['book_name'] ?? '';
-                $authorId = isset($row['author_id']) ? (int) $row['author_id'] : null;
-                $isbn = trim($row['isbn'] ?? '');
-
-                if (empty($isbn)) {
-                    $isbn = 'TEMP-' . uniqid();
-                }
-
-                $coverImage = $row['cover_image'] ?? '';
-
-                if (empty($bookName)) {
-                    Log::warning("Row {$index}: Book name is empty, skipping");
+                $bookData = $this->prepareBookData($row, $defaultAuthor, $authors);
+                
+                if (!$bookData) {
                     $this->errorCount++;
                     continue;
                 }
 
-                if (empty($authorId) || $authorId <= 0 || !Author::find($authorId)) {
-                    Log::warning("Row {$index}: Author ID {$authorId} not found or invalid, using default author");
-                    $authorId = $defaultAuthor->id;
-                }
-
-                $dataChunk[] = [
-                    'book_name'   => $bookName,
-                    'author_id'   => $authorId,
-                    'isbn'        => $isbn,
-                    'cover_image' => $coverImage,
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ];
-
+                $dataChunk[] = $bookData;
                 $this->processedCount++;
 
                 if (count($dataChunk) === $chunkSize) {
                     $this->insertChunk($dataChunk);
                     $dataChunk = [];
-                    
-                    // Update progress in history
                     $this->updateProgress();
                 }
 
@@ -106,8 +86,12 @@ class BookImport implements ToCollection, WithHeadingRow
             $this->insertChunk($dataChunk);
         }
 
-        // Final progress update
-        $this->updateProgress();
+        // Final progress update - always update at the end
+        if ($this->history) {
+            $this->history->update([
+                'processed_records' => $this->processedCount
+            ]);
+        }
 
         Log::info("Import completed. Processed: {$this->processedCount}, Errors: {$this->errorCount}");
     }
@@ -144,5 +128,39 @@ class BookImport implements ToCollection, WithHeadingRow
     public function getErrorCount()
     {
         return $this->errorCount;
+    }
+
+    /**
+     * Prepare book data for insertion
+     */
+    private function prepareBookData($row, $defaultAuthor, $authors)
+    {
+        $bookName = $row['book_name'] ?? '';
+        $authorId = isset($row['author_id']) ? (int) $row['author_id'] : null;
+        $isbn = trim($row['isbn'] ?? '');
+        $coverImage = $row['cover_image'] ?? '';
+
+        if (empty($bookName)) {
+            Log::warning("Row: Book name is empty, skipping");
+            return null;
+        }
+
+        if (empty($isbn)) {
+            $isbn = 'TEMP-' . uniqid();
+        }
+
+        if (empty($authorId) || $authorId <= 0 || !in_array($authorId, $authors)) {
+            Log::warning("Row: Author ID {$authorId} not found or invalid, using default author");
+            $authorId = $defaultAuthor->id;
+        }
+
+        return [
+            'book_name'   => $bookName,
+            'author_id'   => $authorId,
+            'isbn'        => $isbn,
+            'cover_image' => $coverImage,
+            'created_at'  => now(),
+            'updated_at'  => now(),
+        ];
     }
 }

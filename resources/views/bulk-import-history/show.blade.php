@@ -53,7 +53,6 @@
                 </div>
 
                 <!-- Progress Information -->
-                <!-- Progress Information -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Progress Information</h3>
                     <div class="space-y-3">
@@ -65,7 +64,18 @@
                             <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Processed Records:</span>
                             <p class="text-gray-900 dark:text-white">{{ $history->processed_records ?? 'N/A' }}</p>
                         </div>
-
+                        @if($history->total_records > 0)
+                            <div>
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Success Rate:</span>
+                                <p class="text-gray-900 dark:text-white">{{ $history->getSuccessRate() }}%</p>
+                            </div>
+                        @endif
+                        @if($history->getErrorCount() > 0)
+                            <div>
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Error Count:</span>
+                                <p class="text-red-600 dark:text-red-400">{{ $history->getErrorCount() }}</p>
+                            </div>
+                        @endif
                         <div>
                             <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Status Icon:</span>
                             <p class="text-3xl mt-1">

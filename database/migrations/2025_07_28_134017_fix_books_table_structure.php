@@ -29,7 +29,7 @@ return new class extends Migration
             $table->id();
             $table->string('book_name');
             $table->foreignId('author_id')->constrained('authors')->onDelete('cascade');
-            $table->string('isbn');
+            $table->string('isbn')->unique();
             $table->string('cover_image')->nullable();
             $table->timestamps();
         });

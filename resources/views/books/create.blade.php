@@ -46,7 +46,7 @@
             <div class="space-y-2">
                 @foreach($stores as $store)
                     <label class="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" name="stores[]" value="{{ $store->id }}" 
+                        <input type="checkbox" name="stores[]" value="{{ $store->id }}"
                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                {{ in_array($store->id, old('stores', [])) ? 'checked' : '' }}>
                         <span class="text-sm">{{ $store->name }}</span>
@@ -87,7 +87,7 @@
             authorInput.addEventListener('input', function() {
                 clearTimeout(searchTimeout);
                 const query = this.value.trim();
-                
+
                 if (query.length < 2) {
                     suggestionsDiv.classList.add('hidden');
                     return;
@@ -98,7 +98,8 @@
                         .then(response => response.json())
                         .then(data => {
                             suggestionsDiv.innerHTML = '';
-                            
+
+                            //find author
                             if (data.length > 0) {
                                 data.forEach(author => {
                                     const div = document.createElement('div');
@@ -110,8 +111,8 @@
                                     };
                                     suggestionsDiv.appendChild(div);
                                 });
-                                
-                                // "Yeni yazar ekle" butonu
+
+                                // Add new author
                                 const addNewDiv = document.createElement('div');
                                 addNewDiv.className = 'px-4 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-800/50 cursor-pointer border-b border-gray-200 dark:border-zinc-500 font-medium text-blue-700 dark:text-blue-300';
                                 addNewDiv.innerHTML = `"${query}" adlı yazarı kaydet ve kullan`;
@@ -120,7 +121,7 @@
                                     suggestionsDiv.classList.add('hidden');
                                 };
                                 suggestionsDiv.appendChild(addNewDiv);
-                                
+
                                 suggestionsDiv.classList.remove('hidden');
                             } else {
                                 // Hiç sonuç yoksa yeni yazar ekleme seçeneği

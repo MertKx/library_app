@@ -27,7 +27,7 @@ class BookController extends Controller
 
         // Yazarı bul veya oluştur (case insensitive)
         $author = Author::whereRaw('LOWER(name) = ?', [strtolower($validated['author_name'])])->first();
-        
+
         if (!$author) {
             $author = Author::create(['name' => $validated['author_name']]);
         }
@@ -57,7 +57,6 @@ class BookController extends Controller
         $stores = Store::all();
         return view('books.edit', compact('book', 'stores'));
     }
-
     public function update(Request $request, Book $book)
     {
         $validated = $request->validate([
@@ -67,11 +66,12 @@ class BookController extends Controller
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'stores' => 'nullable|array',
             'stores.*' => 'exists:stores,id',
+            'remove_cover' => 'nullable|in:0,1', // Validation for cover removal flag
         ]);
 
-        // Yazarı bul veya oluştur (case insensitive)
+        // Find or create author (case insensitive)
         $author = Author::whereRaw('LOWER(name) = ?', [strtolower($validated['author_name'])])->first();
-        
+
         if (!$author) {
             $author = Author::create(['name' => $validated['author_name']]);
         }
@@ -82,17 +82,32 @@ class BookController extends Controller
             'isbn' => $validated['isbn'],
         ];
 
+        // If removal of cover is requested, delete existing cover image
+        if ($request->input('remove_cover') == '1') {
+            if ($book->cover_image) {
+                \Illuminate\Support\Facades\Storage::delete($book->cover_image);
+            }
+            $bookData['cover_image'] = null; // Remove cover_image path from DB
+        }
+
+        // If new cover image uploaded, store it and update path
         if ($request->hasFile('cover_image')) {
+            // Delete old cover if exists before saving new one
+            if ($book->cover_image) {
+                \Illuminate\Support\Facades\Storage::delete($book->cover_image);
+            }
             $bookData['cover_image'] = $request->file('cover_image')->store('covers', 'public');
         }
 
+        // Update book with new data
         $book->update($bookData);
 
-        // Mağazaları güncelle
+        // Sync stores relation
         $book->stores()->sync($request->stores ?? []);
 
         return redirect()->route('books.show', $book)->with('success', 'Book Updated Successfully!!');
     }
+
 
     public function show(Book $book)
     {
@@ -102,7 +117,7 @@ class BookController extends Controller
     public function index(Request $request)
     {
         $search = $request->get('search', '');
-        
+
         $books = Book::with(['author', 'stores'])
             ->when($search, function ($query) use ($search) {
                 $query->where('book_name', 'like', '%'.$search.'%')
@@ -112,7 +127,7 @@ class BookController extends Controller
                       });
             })
             ->get();
-            
+
         return view('books.index', compact('books', 'search'));
     }
 
@@ -125,7 +140,7 @@ class BookController extends Controller
     public function searchAuthors(Request $request)
     {
         $query = $request->get('query', '');
-        
+
         if (strlen($query) < 2) {
             return response()->json([]);
         }
@@ -136,4 +151,4 @@ class BookController extends Controller
 
         return response()->json($authors);
     }
-} 
+}

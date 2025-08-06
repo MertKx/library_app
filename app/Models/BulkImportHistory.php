@@ -11,6 +11,7 @@ class BulkImportHistory extends Model
 
     protected $fillable = [
         'file_name',
+        'file_path',
         'status',
         'total_records',
         'processed_records',
@@ -58,7 +59,17 @@ class BulkImportHistory extends Model
         if ($this->total_records === 0 || $this->total_records === null) {
             return 0;
         }
-        
-        return round(($this->processed_records / $this->total_records) * 100, 2);
+
+        $successRate = round(($this->processed_records / $this->total_records) * 100, 2);
+        return min(100, max(0, $successRate)); // Ensure between 0-100
+    }
+
+    // Get error count (if available in error message)
+    public function getErrorCount()
+    {
+        if (preg_match('/(\d+) errors?/', $this->error_message ?? '', $matches)) {
+            return (int) $matches[1];
+        }
+        return 0;
     }
 }
