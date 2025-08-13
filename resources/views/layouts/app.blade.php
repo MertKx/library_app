@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Uygulama')</title>
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-DYhey_w5.css') }}">
+    <script src="{{ asset('build/assets/app-l0sNRNKZ.js') }}"></script>
+
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto py-8">
         @yield('content')
     </div>
 </body>
-</html> 
+</html>

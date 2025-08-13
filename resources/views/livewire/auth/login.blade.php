@@ -15,6 +15,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 
+
+
 new #[Layout('components.layouts.auth')] class extends Component {
     #[Validate('required|string')]
     public string $email = '';
@@ -36,7 +38,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
             new RFCValidation(),
             new DNSCheckValidation()
         ]);
-        
+
         if (!$validator->isValid($this->email, $multipleValidations)) {
             throw ValidationException::withMessages([
                 'email' => 'Invalid e-mail format. Please enter a valid e-mail address.',
@@ -88,6 +90,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
         return Str::transliterate(Str::lower($this->email).'|'.request()->ip());
     }
 }; ?>
+
 
 <div class="flex flex-col gap-6">
     <x-auth-header :title="__('Book in to your account!')" :description="__('Enter your email and password below to start your journey.')" />
