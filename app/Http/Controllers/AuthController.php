@@ -10,6 +10,8 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\WelcomeMail;
 
+
+
 class AuthController extends Controller
 {
     public function login(Request $request)
@@ -49,6 +51,9 @@ class AuthController extends Controller
         
         Auth::login($user);
 
+        // Event tetikleniyor, mail listener ile gönderilecek
+        event(new UserRegistered($user));
+
         return redirect()->route('books.index');
     }
-} 
+}

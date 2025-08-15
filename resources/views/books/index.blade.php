@@ -1,7 +1,7 @@
 <x-layouts.app.sidebar title="Library">
     <flux:main>
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Library</h1>
+            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Welcome !</h1>
             <div class="flex gap-2 items-center">
                 @auth
                     <a href="{{ route('books.create') }}" class="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded shadow transition flex items-center gap-2">

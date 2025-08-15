@@ -115,7 +115,7 @@
                                 // Add new author
                                 const addNewDiv = document.createElement('div');
                                 addNewDiv.className = 'px-4 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-800/50 cursor-pointer border-b border-gray-200 dark:border-zinc-500 font-medium text-blue-700 dark:text-blue-300';
-                                addNewDiv.innerHTML = `"${query}" adlı yazarı kaydet ve kullan`;
+                                addNewDiv.innerHTML = `Save the author named "${query}" and use.`;
                                 addNewDiv.onclick = function() {
                                     authorInput.value = query;
                                     suggestionsDiv.classList.add('hidden');
@@ -127,7 +127,7 @@
                                 // Hiç sonuç yoksa yeni yazar ekleme seçeneği
                                 const addNewDiv = document.createElement('div');
                                 addNewDiv.className = 'px-4 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-800/50 cursor-pointer border-b border-gray-200 dark:border-zinc-500 font-medium text-blue-700 dark:text-blue-300';
-                                addNewDiv.innerHTML = `"${query}" adlı yazarı kaydet ve kullan`;
+                                addNewDiv.innerHTML = `Save the author named "${query}" and use.`;
                                 addNewDiv.onclick = function() {
                                     authorInput.value = query;
                                     suggestionsDiv.classList.add('hidden');

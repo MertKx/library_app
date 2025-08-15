@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use App\Models\Book;
 use App\Models\Author;
 use App\Models\Store;
+use Illuminate\Database\QueryException;
 
 class BookController extends Controller
 {
@@ -25,9 +26,7 @@ class BookController extends Controller
             'stores.*' => 'exists:stores,id',
         ]);
 
-        // Yazarı bul veya oluştur (case insensitive)
         $author = Author::whereRaw('LOWER(name) = ?', [strtolower($validated['author_name'])])->first();
-
         if (!$author) {
             $author = Author::create(['name' => $validated['author_name']]);
         }
@@ -42,11 +41,19 @@ class BookController extends Controller
             $bookData['cover_image'] = $request->file('cover_image')->store('covers', 'public');
         }
 
-        $book = Book::create($bookData);
+        try {
+            $book = Book::create($bookData);
 
-        // Mağazaları ekle
-        if ($request->has('stores')) {
-            $book->stores()->attach($request->stores);
+            if ($request->has('stores')) {
+                $book->stores()->attach($request->stores);
+            }
+        } catch (QueryException $e) {
+            if ($e->errorInfo[1] == 1062) { // MySQL duplicate entry
+                return back()->withInput()->withErrors([
+                    'isbn' => 'This ISBN is already in use. Please enter a different one.',
+                ]);
+            }
+            throw $e;
         }
 
         return redirect()->route('books.show', $book)->with('success', 'Book Created Successfully!!');
@@ -57,6 +64,7 @@ class BookController extends Controller
         $stores = Store::all();
         return view('books.edit', compact('book', 'stores'));
     }
+
     public function update(Request $request, Book $book)
     {
         $validated = $request->validate([
@@ -66,12 +74,10 @@ class BookController extends Controller
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'stores' => 'nullable|array',
             'stores.*' => 'exists:stores,id',
-            'remove_cover' => 'nullable|in:0,1', // Validation for cover removal flag
+            'remove_cover' => 'nullable|in:0,1',
         ]);
 
-        // Find or create author (case insensitive)
         $author = Author::whereRaw('LOWER(name) = ?', [strtolower($validated['author_name'])])->first();
-
         if (!$author) {
             $author = Author::create(['name' => $validated['author_name']]);
         }
@@ -82,32 +88,34 @@ class BookController extends Controller
             'isbn' => $validated['isbn'],
         ];
 
-        // If removal of cover is requested, delete existing cover image
         if ($request->input('remove_cover') == '1') {
             if ($book->cover_image) {
                 \Illuminate\Support\Facades\Storage::delete($book->cover_image);
             }
-            $bookData['cover_image'] = null; // Remove cover_image path from DB
+            $bookData['cover_image'] = null;
         }
 
-        // If new cover image uploaded, store it and update path
         if ($request->hasFile('cover_image')) {
-            // Delete old cover if exists before saving new one
             if ($book->cover_image) {
                 \Illuminate\Support\Facades\Storage::delete($book->cover_image);
             }
             $bookData['cover_image'] = $request->file('cover_image')->store('covers', 'public');
         }
 
-        // Update book with new data
-        $book->update($bookData);
-
-        // Sync stores relation
-        $book->stores()->sync($request->stores ?? []);
+        try {
+            $book->update($bookData);
+            $book->stores()->sync($request->stores ?? []);
+        } catch (QueryException $e) {
+            if ($e->errorInfo[1] == 1062) { // Duplicate ISBN
+                return back()->withInput()->withErrors([
+                    'isbn' => 'This ISBN is already in use. Please enter a different one.',
+                ]);
+            }
+            throw $e;
+        }
 
         return redirect()->route('books.show', $book)->with('success', 'Book Updated Successfully!!');
     }
-
 
     public function show(Book $book)
     {
@@ -121,10 +129,10 @@ class BookController extends Controller
         $books = Book::with(['author', 'stores'])
             ->when($search, function ($query) use ($search) {
                 $query->where('book_name', 'like', '%'.$search.'%')
-                      ->orWhere('isbn', 'like', '%'.$search.'%')
-                      ->orWhereHas('author', function ($q) use ($search) {
-                          $q->where('name', 'like', '%'.$search.'%');
-                      });
+                    ->orWhere('isbn', 'like', '%'.$search.'%')
+                    ->orWhereHas('author', function ($q) use ($search) {
+                        $q->where('name', 'like', '%'.$search.'%');
+                    });
             })
             ->get();
 
