@@ -20,9 +20,10 @@
 
             <flux:spacer />
 
-            <flux:navlist variant="outline">
+            <!-- <flux:navlist variant="outline">
                 Hello !
             </flux:navlist>
+            -->
 
             <!-- Guest User Dropdown -->
             @guest

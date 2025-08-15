@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\Mail;
+use App\Events\UserRegistered;
+
 
 class AuthController extends Controller
 {
@@ -40,9 +43,12 @@ class AuthController extends Controller
         $validated['password'] = Hash::make($validated['password']);
 
         $user = User::create($validated);
-        event(new Registered($user));
+
         Auth::login($user);
+
+        // Event tetikleniyor, mail listener ile gönderilecek
+        event(new UserRegistered($user));
 
         return redirect()->route('books.index');
     }
-} 
+}
