@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\WelcomeMail;
 
 class AuthController extends Controller
 {
@@ -41,6 +43,10 @@ class AuthController extends Controller
 
         $user = User::create($validated);
         event(new Registered($user));
+        
+        // Hoş geldin maili gönder
+        Mail::to($user->email)->send(new WelcomeMail($user));
+        
         Auth::login($user);
 
         return redirect()->route('books.index');
