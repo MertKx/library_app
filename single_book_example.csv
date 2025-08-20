@@ -1,0 +1,11 @@
+book_name,author_id,isbn,cover_image
+"1984",1,"978-0-452-28423-5","1984_cover.jpg"
+"Animal Farm",1,"978-0-452-28424-2","animal_farm_cover.jpg"
+"Homage to Catalonia",1,"978-0-452-28425-9","homage_catalonia_cover.jpg"
+"Down and Out in Paris and London",1,"978-0-452-28426-6","down_out_cover.jpg"
+"The Road to Wigan Pier",1,"978-0-452-28427-3","wigan_pier_cover.jpg"
+"Coming Up for Air",1,"978-0-452-28428-0","coming_air_cover.jpg"
+"Keep the Aspidistra Flying",1,"978-0-452-28429-7","aspidistra_cover.jpg"
+"A Clergyman's Daughter",1,"978-0-452-28430-3","clergyman_daughter_cover.jpg"
+"Burmese Days",1,"978-0-452-28431-0","burmese_days_cover.jpg"
+"The Lion and the Unicorn",1,"978-0-452-28432-7","lion_unicorn_cover.jpg" 
