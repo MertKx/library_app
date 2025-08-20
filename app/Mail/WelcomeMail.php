@@ -28,7 +28,7 @@ class WelcomeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Hoş Geldiniz! Kayıt İşleminiz Tamamlandı',
+            subject: 'Welcome! Registeration is successful...',
         );
     }
 

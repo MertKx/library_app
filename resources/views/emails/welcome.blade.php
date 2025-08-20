@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Hoş Geldiniz</title>
+    <title>Welcome !</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -63,35 +63,35 @@
         <div class="header">
             <h1>{{ config('app.name') }}</h1>
         </div>
-        
+
         <div class="content">
             <div class="welcome-message">
-                <h2>🎉 Hoş Geldiniz!</h2>
-                <p>Kayıt işleminiz başarıyla tamamlandı.</p>
+                <h2>🎉 Welcome !</h2>
+                <p>Your registeration process has completed succesfully.</p>
             </div>
 
-            <p>Merhaba <strong>{{ $user->name }}</strong>,</p>
-            
-            <p>{{ config('app.name') }} platformuna hoş geldiniz! Kayıt işleminiz başarıyla tamamlandı ve artık tüm özelliklerden faydalanabilirsiniz.</p>
-            
+            <p>Hello, <strong>{{ $user->name }}</strong>,</p>
+
+            <p>{{ config('app.name') }} says hi to you.</p>
+
             <div class="info-box">
-                <h3>Hesap Bilgileriniz:</h3>
+                <h3>Account Info:</h3>
                 <ul>
-                    <li><strong>Ad Soyad:</strong> {{ $user->name }}</li>
-                    <li><strong>E-posta:</strong> {{ $user->email }}</li>
-                    <li><strong>Kayıt Tarihi:</strong> {{ $user->created_at->format('d.m.Y H:i') }}</li>
+                    <li><strong>Name:</strong> {{ $user->name }}</li>
+                    <li><strong>Mail Address:</strong> {{ $user->email }}</li>
+                    <li><strong>Creation Date:</strong> {{ $user->created_at->format('d.m.Y H:i') }}</li>
                 </ul>
             </div>
 
-            <p>Platformumuzda keyifli vakit geçirmenizi dileriz! Herhangi bir sorunuz olursa bizimle iletişime geçmekten çekinmeyin.</p>
-            
-            <p>Saygılarımızla,<br>
-            <strong>{{ config('app.name') }} Ekibi</strong></p>
+            <p>Wish you good time with us.</p>
+
+            <p>Kind regards,<br>
+            <strong>{{ config('app.name') }} Team</strong></p>
         </div>
-        
+
         <div class="footer">
-            <p>Bu e-posta {{ config('app.name') }} tarafından otomatik olarak gönderilmiştir.</p>
-            <p>{{ now()->format('Y') }} © {{ config('app.name') }}. Tüm hakları saklıdır.</p>
+            <p>This mail has sent by {{ config('app.name') }} automatically.</p>
+            <p>{{ now()->format('Y') }} © {{ config('app.name') }}. Preserved.</p>
         </div>
     </div>
 </body>

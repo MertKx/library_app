@@ -10,7 +10,9 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\WelcomeMail;
 
-
+// Handler sınıfları
+use App\Chain\SendWelcomeEmailHandler;
+use App\Chain\LogRegistrationHandler;
 
 class AuthController extends Controller
 {
@@ -35,24 +37,38 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        // Validate form data
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'confirmed', 'min:8'],
         ]);
 
+        // Hash password
         $validated['password'] = Hash::make($validated['password']);
 
+        // Create user
         $user = User::create($validated);
-        event(new Registered($user));
-        
-        // Hoş geldin maili gönder
-        Mail::to($user->email)->send(new WelcomeMail($user));
-        
+
+        // Login user
         Auth::login($user);
 
-        // Event tetikleniyor, mail listener ile gönderilecek
-        event(new UserRegistered($user));
+        // Create pipeline handlers
+        $pipeline = [
+            new SendWelcomeEmailHandler(),
+            new LogRegistrationHandler(),
+        ];
+
+        // Prepare payload
+        $payload = ['user' => $user];
+
+        // Run pipeline
+        foreach ($pipeline as $handler) {
+            $payload = $handler->handle($payload);
+        }
+
+        // Fire event
+        event(new \App\Events\UserRegistered($user));
 
         return redirect()->route('books.index');
     }
