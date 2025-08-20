@@ -12,13 +12,24 @@ use Illuminate\Support\Facades\Log;
 
 class BookImport implements ToCollection, WithHeadingRow
 {
+    private static ?BookImport $instance = null;
+
     protected $history;
     protected $processedCount = 0;
     protected $errorCount = 0;
 
-    public function __construct(BulkImportHistory $history = null)
+    private function __construct(BulkImportHistory $history = null)
     {
         $this->history = $history;
+    }
+
+    // Singleton access point
+    public static function getInstance(BulkImportHistory $history = null): BookImport
+    {
+        if (self::$instance === null) {
+            self::$instance = new BookImport($history);
+        }
+        return self::$instance;
     }
 
     public function collection(Collection $rows)
@@ -30,16 +41,15 @@ class BookImport implements ToCollection, WithHeadingRow
 
         $defaultAuthor = Author::firstOrCreate(['name' => 'Unknown Author']);
 
-        // Pre-load all authors to avoid N+1 queries
+        // Pre-load all authors
         $authorIds = $rows->pluck('author_id')->filter()->unique()->toArray();
         $authors = Author::whereIn('id', $authorIds)->pluck('id')->toArray();
-        
-        // Check if ISBNs already exist in database
+
+        // ISBN duplicate check
         $isbnList = $rows->pluck('isbn')->map(function($isbn) {
             return empty(trim($isbn)) ? 'TEMP-' . uniqid() : trim($isbn);
         })->filter()->unique()->toArray();
 
-        // Check for duplicates in CSV first
         $csvIsbnCount = count($isbnList);
         $uniqueIsbnCount = count(array_unique($isbnList));
         if ($csvIsbnCount !== $uniqueIsbnCount) {
@@ -48,7 +58,6 @@ class BookImport implements ToCollection, WithHeadingRow
             throw new \Exception("Duplicate ISBNs found in CSV file: {$duplicateList}");
         }
 
-        // Check if ISBNs already exist in database (only if we have ISBNs to check)
         if (!empty($isbnList)) {
             $existingIsbns = Book::whereIn('isbn', $isbnList)->pluck('isbn')->toArray();
             if (!empty($existingIsbns)) {
@@ -61,7 +70,7 @@ class BookImport implements ToCollection, WithHeadingRow
         foreach ($rows as $index => $row) {
             try {
                 $bookData = $this->prepareBookData($row, $defaultAuthor, $authors);
-                
+
                 if (!$bookData) {
                     $this->errorCount++;
                     continue;
@@ -75,7 +84,6 @@ class BookImport implements ToCollection, WithHeadingRow
                     $dataChunk = [];
                     $this->updateProgress();
                 }
-
             } catch (\Exception $e) {
                 Log::error("Row {$index} processing error: " . $e->getMessage());
                 $this->errorCount++;
@@ -86,7 +94,6 @@ class BookImport implements ToCollection, WithHeadingRow
             $this->insertChunk($dataChunk);
         }
 
-        // Final progress update - always update at the end
         if ($this->history) {
             $this->history->update([
                 'processed_records' => $this->processedCount
@@ -101,7 +108,7 @@ class BookImport implements ToCollection, WithHeadingRow
         try {
             Book::query()->upsert(
                 $dataChunk,
-                ['isbn'], // Unique key
+                ['isbn'],
                 ['book_name', 'author_id', 'cover_image', 'updated_at']
             );
             Log::info("Inserted chunk of size: " . count($dataChunk));
@@ -130,9 +137,6 @@ class BookImport implements ToCollection, WithHeadingRow
         return $this->errorCount;
     }
 
-    /**
-     * Prepare book data for insertion
-     */
     private function prepareBookData($row, $defaultAuthor, $authors)
     {
         $bookName = $row['book_name'] ?? '';

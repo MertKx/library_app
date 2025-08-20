@@ -65,9 +65,13 @@ class ProcessBooksImport implements ShouldQueue
             Log::info("Starting import process for file: {$filePath}");
 
             // Read Excel rows
-            $rows = Excel::toCollection(new BookImport(), $filePath)->first();
+            $bookImport = BookImport::getInstance($history); // Singleton instance
+            $rows = Excel::toCollection($bookImport, $filePath)->first();
 
-            $bookImport = new BookImport($history);
+
+            // for singleton principle
+            $bookImport = BookImport::getInstance($history);
+
 
             // Create payload
             $payload = [
