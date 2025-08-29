@@ -59,8 +59,8 @@ services:
 
     mailpit:
         image: axllent/mailpit
-        container_name: mailpit
-        restart: unless-stopped
+        container_name: mailpit_server
+        restart: on-failure
         networks:
             - sail
         ports:
@@ -73,6 +73,7 @@ services:
             MP_SMTP_AUTH_ALLOW_INSECURE: 1
         volumes:
             - ./data:/data
+
 
 networks:
     sail:

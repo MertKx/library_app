@@ -6,6 +6,10 @@ use App\Models\Book;
 use App\Models\Author;
 use App\Models\Store;
 use Illuminate\Database\QueryException;
+use App\Services\BookSaver;
+use App\Services\LoggingBookSaver;
+use Illuminate\Support\Facades\Log;
+
 
 class BookController extends Controller
 {
@@ -42,7 +46,9 @@ class BookController extends Controller
         }
 
         try {
-            $book = Book::create($bookData);
+            //Saving with decorator
+            $saver = new LoggingBookSaver(new BookSaver());
+            $book = $saver->save($bookData);
 
             if ($request->has('stores')) {
                 $book->stores()->attach($request->stores);
